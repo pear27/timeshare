@@ -27,6 +27,16 @@ const Icon = styled.div`
   }
 `;
 
+const Edit = styled.input`
+  font-size: 16px;
+  font-family: "PretendardRegular";
+`;
+
+const Name = styled.p`
+  font-size: 16px;
+  font-family: "PretendardRegular";
+`;
+
 const More = styled.span`
   cursor: pointer;
   width: 30px;
@@ -40,6 +50,9 @@ export function Todo({ name, createdAt, checked, id }: ITodo) {
   const createdDate = new Date(createdAt);
 
   const [more, setMore] = useState(false);
+  const [edit, setEdit] = useState(false);
+
+  const [newName, setNewName] = useState(name);
 
   const createdDateString = `${date2String(createdDate)}`;
 
@@ -61,12 +74,33 @@ export function Todo({ name, createdAt, checked, id }: ITodo) {
     }
   };
 
+  const onEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (newName === "") return;
+    try {
+      await updateDoc(doc(db, `${user.uid}/todo/${createdDateString}`, id), {
+        name: `${newName}`,
+      });
+      setEdit(false);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   const moreOn = () => {
     setMore(true);
   };
 
   const moreOff = () => {
     setMore(false);
+  };
+
+  const editOn = () => {
+    setEdit(true);
+  };
+
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewName(e.target.value);
   };
 
   const onDelete = async () => {
@@ -114,11 +148,22 @@ export function Todo({ name, createdAt, checked, id }: ITodo) {
       </Icon>
 
       <div style={{ display: "flex", alignItems: "center" }}>
-        <p>{name}</p>
+        {edit ? (
+          <form onSubmit={onEdit}>
+            <Edit
+              type="text"
+              onChange={onChange}
+              value={newName}
+              placeholder="무엇을 할까?"
+            />
+          </form>
+        ) : (
+          <Name>{name}</Name>
+        )}
       </div>
       {more ? (
         <div style={{ display: "flex", alignItems: "center" }}>
-          <More>수정</More>
+          <More onClick={editOn}>수정</More>
           <More onClick={onDelete}>삭제</More>
         </div>
       ) : null}
