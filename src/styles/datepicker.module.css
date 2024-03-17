@@ -1,0 +1,18 @@
+.datePicker {
+    display: flex;
+    align-items: center;
+    border: 2px solid #353535;
+    border-radius: 4px;
+    background-color: white;
+    color: #353535;
+    box-sizing: border-box;
+    height: 45px;
+    text-align: center;
+    padding-right: 14px;
+    font-family: "seolleimcoolTTFSemiBold";
+    font-size: 15px;
+
+    &:focus {
+        background-color: aliceblue;
+    }
+}

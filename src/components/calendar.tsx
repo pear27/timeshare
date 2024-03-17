@@ -59,7 +59,7 @@ const MonthBtn = styled.div`
   width: 20px;
 `;
 
-const TodayBtn = styled.div`
+const TodayBtn = styled.button`
   margin-top: 10px;
   width: 60px;
   cursor: pointer;
@@ -77,6 +77,16 @@ const TodayBtn = styled.div`
   &:hover {
     background-color: black;
     color: white;
+  }
+`;
+
+const MoreBtn = styled.div`
+  cursor: pointer;
+  height: 30px;
+  width: 30px;
+  float: right;
+  svg {
+    width: 30px;
   }
 `;
 
@@ -99,7 +109,7 @@ const DayName = styled.h1`
   font-family: "seolleimcoolTTFSemiBold";
 `;
 
-const AddButton = styled.button`
+const AddBtn = styled.button`
   margin-top: 5px;
   gap: 5px;
   padding: 10px 15px;
@@ -163,6 +173,7 @@ const Calendar = () => {
   const user = auth.currentUser;
   const createdCalendar = CreateCalendar();
   const [saveScdForm, setSaveScdForm] = useState(false);
+  const [more, setMore] = useState(false);
 
   const [todos, setTodos] = useState<ITodo[]>([]);
   const [scds, setScds] = useState<IScd[]>([]);
@@ -332,7 +343,7 @@ const Calendar = () => {
           ))}
         </CalendarWrapper>
       </Wrapper>
-      <div>
+      <div style={{ display: "flex", flexDirection: "column" }}>
         <div
           style={{
             width: "100%",
@@ -396,13 +407,13 @@ const Calendar = () => {
               <Schedule key={scd.id} {...scd} />
             ))}
           </div>
-          <AddButton
+          <AddBtn
             onClick={() => {
               setSaveScdForm(true);
             }}
           >
             일정 추가하기
-          </AddButton>
+          </AddBtn>
         </div>
         <div>
           <div>
