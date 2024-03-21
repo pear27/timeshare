@@ -10,7 +10,6 @@ import { doc } from "firebase/firestore";
 import { auth, db } from "./../firebase";
 
 import {
-  addDoc,
   setDoc,
   collection,
   limit,
@@ -24,7 +23,7 @@ import { IScd, IRepeat, Schedule } from "./schedule";
 import { IAnni, Anniversary } from "./anniversary";
 import SaveForm from "./save-form";
 import SaveTodoForm from "./save-todo-form";
-import { date2String } from "./date-components";
+import { date2String, DAY_LIST } from "./date-components";
 
 const Wrapper = styled.div`
   align-items: center;
@@ -135,7 +134,6 @@ const AddBtn = styled.button`
 const DEFAULT_TRASH_VALUE = 0;
 const CALENDER_LENGTH = 35;
 const DAY_OF_WEEK = 7;
-export const DAY_LIST = ["일", "월", "화", "수", "목", "금", "토"];
 
 const CreateCalendar = () => {
   const [today, setToday] = useState(new Date());
@@ -293,10 +291,11 @@ const Calendar = () => {
       repeatScds.map((scd) => {
         const startDate = new Date(scd.startDate.seconds * 1000);
         const endDate = new Date(scd.endDate.seconds * 1000);
-
+        const tmxkxm = createdCalendar.currentDate;
+        tmxkxm.setHours(23, 59, 59);
         if (
           !scdIds.includes(scd.id) &&
-          startDate < createdCalendar.currentDate &&
+          startDate <= tmxkxm &&
           (!scd.repeatEnd ||
             createdCalendar.currentDate <
               new Date(scd.repeatEnd.seconds * 1000))
@@ -358,7 +357,6 @@ const Calendar = () => {
     fetchTodo();
     saveRepeatScd();
 
-    
     fetchScd();
 
     return () => {

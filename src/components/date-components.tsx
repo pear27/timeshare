@@ -6,3 +6,5 @@ export const date2String = (date) => {
   ).slice(-2)}${("0" + dateInfo.getDate()).slice(-2)}`;
   return string;
 };
+
+export const DAY_LIST = ["일", "월", "화", "수", "목", "금", "토"];

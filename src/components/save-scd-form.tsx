@@ -7,13 +7,11 @@ import { useState } from "react";
 
 import { setDoc } from "firebase/firestore";
 
-import { date2String } from "./date-components";
+import { date2String, DAY_LIST } from "./date-components";
 
 import styles from "../styles/datepicker.module.css";
 
 import { Form, Input, NumInput, Label, Error, Button } from "./save-components";
-
-import { DAY_LIST } from "./calendar";
 
 const selectedName = "selected";
 
@@ -38,7 +36,7 @@ export default function SaveScdForm({
   const [repeatType, setRepeatType] = useState(Rtype ? Rtype : 0);
   const [repeatPeriod, setRepeatPeriod] = useState(Rperiod ? Rperiod : 1);
 
-  let repeatWeekData = [false, false, false, false, false, false, false];
+  const repeatWeekData = [false, false, false, false, false, false, false];
   const [repeatMonthData, setRepeatMonthData] = useState(start.getDate());
   const [repeatYearData, setRepeatYearData] = useState(start);
 

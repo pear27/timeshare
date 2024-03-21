@@ -1,5 +1,4 @@
 import { styled } from "styled-components";
-import { DAY_LIST } from "./calendar";
 import { useState } from "react";
 import { auth, db } from "../firebase";
 import { deleteDoc, doc } from "firebase/firestore";
@@ -7,7 +6,7 @@ import { deleteDoc, doc } from "firebase/firestore";
 import Modal from "react-modal";
 import SaveScdForm from "./save-scd-form";
 
-import { date2String } from "./date-components";
+import { date2String, DAY_LIST } from "./date-components";
 
 export interface IScd {
   id: string;
