@@ -16,6 +16,17 @@ export interface IScd {
   endDate: timestamp;
 }
 
+export interface IRepeat {
+  id: string;
+  name: string;
+  startDate: timestamp;
+  endDate: timestamp;
+  repeatType: number;
+  repeatPeriod: number;
+  repeatInfo: map;
+  repeatEnd: timestamp;
+}
+
 const Wrapper = styled.div`
   display: grid;
   gap: 5px;

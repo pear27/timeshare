@@ -6,10 +6,12 @@ import { useState, useEffect } from "react";
 import Modal from "react-modal";
 import "react-datepicker/dist/react-datepicker.css";
 import { Unsubscribe } from "firebase/auth";
+import { doc } from "firebase/firestore";
 import { auth, db } from "./../firebase";
 
 import {
   addDoc,
+  setDoc,
   collection,
   limit,
   onSnapshot,
@@ -18,9 +20,9 @@ import {
 } from "firebase/firestore";
 
 import { ITodo, Todo } from "./todo";
-import { IScd, Schedule } from "./schedule";
+import { IScd, IRepeat, Schedule } from "./schedule";
 import { IAnni, Anniversary } from "./anniversary";
-import SaveScdForm from "./save-scd-form";
+import SaveForm from "./save-form";
 import SaveTodoForm from "./save-todo-form";
 import { date2String } from "./date-components";
 
@@ -173,11 +175,13 @@ const Calendar = () => {
   const user = auth.currentUser;
   const createdCalendar = CreateCalendar();
   const [saveScdForm, setSaveScdForm] = useState(false);
-  const [more, setMore] = useState(false);
 
   const [todos, setTodos] = useState<ITodo[]>([]);
   const [scds, setScds] = useState<IScd[]>([]);
   const [annis, setAnnis] = useState<IAnni[]>([]);
+
+  const [scdIds, setScdIds] = useState([]);
+  const [repeatScds, setRepeatScds] = useState<IRepeat[]>([]);
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | null = null;
@@ -203,7 +207,7 @@ const Calendar = () => {
       const ScdQuery = query(
         collection(db, `${user.uid}/schedule/${dateString}`),
         orderBy("startDate", "asc"),
-        limit(10)
+        limit(25)
       );
 
       unsubscribe = await onSnapshot(ScdQuery, (snapshot) => {
@@ -213,6 +217,11 @@ const Calendar = () => {
         });
         setScds(schedules);
       });
+
+      const scheduleIds = scds.map((scd) => {
+        return scd.id;
+      });
+      setScdIds(scheduleIds);
     };
 
     const fetchTodo = async () => {
@@ -231,9 +240,124 @@ const Calendar = () => {
       });
     };
 
+    const saveEachScd = async (
+      nowDateString,
+      newId,
+      name,
+      startDate,
+      endDate,
+      repeatType
+    ) => {
+      await setDoc(
+        doc(db, `${user.uid}/schedule/${nowDateString}`, `${newId}`),
+        {
+          name,
+          startDate,
+          endDate,
+          repeatType,
+          repeatEnd: true,
+        }
+      );
+    };
+
+    const saveRepeatScd = async () => {
+      const RepeatScdQuery = query(
+        collection(db, `${user.uid}/schedule/repeat`),
+        orderBy("startDate", "asc"),
+        limit(25)
+      );
+
+      unsubscribe = await onSnapshot(RepeatScdQuery, (snapshot) => {
+        const repeatScds = snapshot.docs.map((doc) => {
+          const {
+            name,
+            startDate,
+            endDate,
+            repeatType,
+            repeatInfo,
+            repeatEnd,
+          } = doc.data();
+          return {
+            name,
+            startDate,
+            endDate,
+            repeatType,
+            repeatInfo,
+            repeatEnd,
+            id: doc.id,
+          };
+        });
+        setRepeatScds(repeatScds);
+      });
+      // db에 저장
+      repeatScds.map((scd) => {
+        if (
+          !scdIds.includes(scd.id) &&
+          (!scd.repeatEnd ||
+            (new Date(scd.startDate.seconds * 1000) <
+              createdCalendar.currentDate &&
+              createdCalendar.currentDate <
+                new Date(scd.repeatEnd.seconds * 1000)))
+        ) {
+          const startDate = new Date(scd.startDate.seconds * 1000);
+          const endDate = new Date(scd.endDate.seconds * 1000);
+
+          switch (scd.repeatType) {
+            case 1:
+              break;
+            case 2:
+              if (
+                scd.repeatInfo.repeatWeekData[
+                  createdCalendar.currentDate.getDay()
+                ]
+              ) {
+                //db에 저장
+                const dateCount =
+                  (endDate.getTime() - startDate.getTime()) /
+                  (1000 * 60 * 60 * 24);
+                const newId = scd.id;
+
+                const start = new Date(
+                  createdCalendar.currentDate.setHours(
+                    startDate.getHours(),
+                    startDate.getMinutes(),
+                    0
+                  )
+                );
+
+                let end = createdCalendar.currentDate;
+                end.setDate(start.getDate() + dateCount);
+                end.setHours(endDate.getHours(), endDate.getMinutes(), 0);
+
+                for (let i = 0; i <= dateCount; i++) {
+                  const nowDate = new Date();
+                  const nowDateString = date2String(
+                    nowDate.setDate(createdCalendar.currentDate.getDate() + i)
+                  );
+
+                  saveEachScd(
+                    nowDateString,
+                    newId,
+                    scd.name,
+                    start,
+                    end,
+                    scd.repeatType
+                  );
+                }
+              }
+              break;
+            case 3:
+              break;
+            case 4:
+              break;
+          }
+        }
+      });
+    };
     fetchAnni();
     fetchScd();
     fetchTodo();
+    saveRepeatScd();
 
     return () => {
       unsubscribe && unsubscribe();
@@ -379,15 +503,19 @@ const Calendar = () => {
               bottom: "15%",
               left: "15%",
               right: "15%",
-              padding: "5%",
+              padding: "3%",
             },
           }}
         >
-          <SaveScdForm
+          <SaveForm
             initname=""
             start={createdCalendar.currentDate}
             end={null}
             user={user}
+            Rtype={null}
+            Rperiod={null}
+            Rinfo={null}
+            Rend={null}
             setSaveScdForm={setSaveScdForm}
           />
         </Modal>
