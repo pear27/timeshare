@@ -289,19 +289,18 @@ const Calendar = () => {
         });
         setRepeatScds(repeatScds);
       });
-      // db에 저장
+
       repeatScds.map((scd) => {
+        const startDate = new Date(scd.startDate.seconds * 1000);
+        const endDate = new Date(scd.endDate.seconds * 1000);
+
         if (
           !scdIds.includes(scd.id) &&
+          startDate < createdCalendar.currentDate &&
           (!scd.repeatEnd ||
-            (new Date(scd.startDate.seconds * 1000) <
-              createdCalendar.currentDate &&
-              createdCalendar.currentDate <
-                new Date(scd.repeatEnd.seconds * 1000)))
+            createdCalendar.currentDate <
+              new Date(scd.repeatEnd.seconds * 1000))
         ) {
-          const startDate = new Date(scd.startDate.seconds * 1000);
-          const endDate = new Date(scd.endDate.seconds * 1000);
-
           switch (scd.repeatType) {
             case 1:
               break;
@@ -325,14 +324,14 @@ const Calendar = () => {
                   )
                 );
 
-                let end = createdCalendar.currentDate;
+                const end = createdCalendar.currentDate;
                 end.setDate(start.getDate() + dateCount);
                 end.setHours(endDate.getHours(), endDate.getMinutes(), 0);
 
                 for (let i = 0; i <= dateCount; i++) {
-                  const nowDate = new Date();
+                  const nowDate = start;
                   const nowDateString = date2String(
-                    nowDate.setDate(createdCalendar.currentDate.getDate() + i)
+                    nowDate.setDate(start.getDate() + i)
                   );
 
                   saveEachScd(
@@ -358,6 +357,9 @@ const Calendar = () => {
     fetchScd();
     fetchTodo();
     saveRepeatScd();
+
+    
+    fetchScd();
 
     return () => {
       unsubscribe && unsubscribe();
