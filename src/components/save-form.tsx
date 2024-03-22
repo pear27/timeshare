@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SaveScdForm from "./save-scd-form";
 import SaveAniForm from "./save-ani-form";
+import SaveDdayForm from "./save-dday-form";
 import { Button } from "./save-components";
 
 const selectedName = "selected";
@@ -67,6 +68,14 @@ export default function SaveForm({
         <SaveAniForm
           initname={initname}
           date={start}
+          user={user}
+          setSaveForm={setSaveForm}
+        />
+      ) : null}
+      {type === 3 ? (
+        <SaveDdayForm
+          initname={initname}
+          end={start}
           user={user}
           setSaveForm={setSaveForm}
         />
