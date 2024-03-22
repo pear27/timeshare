@@ -1,5 +1,6 @@
 import { useState } from "react";
 import SaveScdForm from "./save-scd-form";
+import SaveAniForm from "./save-ani-form";
 import { Button } from "./save-components";
 
 const selectedName = "selected";
@@ -14,7 +15,7 @@ export default function SaveForm({
   Rinfo,
   Rend,
   user,
-  setSaveScdForm,
+  setSaveForm,
 }) {
   const [type, setType] = useState(1);
 
@@ -59,7 +60,15 @@ export default function SaveForm({
           Rinfo={Rinfo}
           Rend={Rend}
           user={user}
-          setSaveScdForm={setSaveScdForm}
+          setSaveForm={setSaveForm}
+        />
+      ) : null}
+      {type === 2 ? (
+        <SaveAniForm
+          initname={initname}
+          date={start}
+          user={user}
+          setSaveForm={setSaveForm}
         />
       ) : null}
     </div>

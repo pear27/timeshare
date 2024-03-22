@@ -173,7 +173,7 @@ const Calendar = () => {
   const user = auth.currentUser;
   const createdCalendar = CreateCalendar();
   const selectedDate = new Date(createdCalendar.currentDate);
-  const [saveScdForm, setSaveScdForm] = useState(false);
+  const [saveForm, setSaveForm] = useState(false);
 
   const [todos, setTodos] = useState<ITodo[]>([]);
   const [scds, setScds] = useState<IScd[]>([]);
@@ -543,8 +543,8 @@ const Calendar = () => {
           </div>
         </div>
         <Modal
-          isOpen={saveScdForm}
-          onRequestClose={() => setSaveScdForm(false)}
+          isOpen={saveForm}
+          onRequestClose={() => setSaveForm(false)}
           style={{
             overlay: { backgroundColor: "rgba(0, 0, 0, 0.3)" },
             content: {
@@ -566,7 +566,7 @@ const Calendar = () => {
             Rperiod={null}
             Rinfo={null}
             Rend={null}
-            setSaveScdForm={setSaveScdForm}
+            setSaveForm={setSaveForm}
           />
         </Modal>
         <div
@@ -587,7 +587,7 @@ const Calendar = () => {
           </div>
           <AddBtn
             onClick={() => {
-              setSaveScdForm(true);
+              setSaveForm(true);
             }}
           >
             일정 추가하기
