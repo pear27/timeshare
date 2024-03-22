@@ -20,7 +20,7 @@ import {
 
 import { ITodo, Todo } from "./todo";
 import { IScd, IRepeat, Schedule } from "./schedule";
-import { IAnni, Anniversary } from "./anniversary";
+import { IAnni, IThisAnni, Anniversary } from "./anniversary";
 import SaveForm from "./save-form";
 import SaveTodoForm from "./save-todo-form";
 import { date2String, DAY_LIST } from "./date-components";
@@ -176,29 +176,102 @@ const Calendar = () => {
   const [saveForm, setSaveForm] = useState(false);
 
   const [todos, setTodos] = useState<ITodo[]>([]);
-  const [scds, setScds] = useState<IScd[]>([]);
-  const [annis, setAnnis] = useState<IAnni[]>([]);
 
+  const [scds, setScds] = useState<IScd[]>([]);
   const [scdIds, setScdIds] = useState([]);
   const [repeatScds, setRepeatScds] = useState<IRepeat[]>([]);
+
+  const [thisAnnis, setThisAnnis] = useState<IThisAnni[]>([]);
+  const [anniIds, setAnniIds] = useState([]);
+  const [annis, setAnnis] = useState<IAnni[]>([]);
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | null = null;
     const dateString = `${date2String(selectedDate)}`;
 
-    const fetchAnni = async () => {
-      const AnniQuery = query(
+    const fetchThisAnni = async () => {
+      const ThisAnniQuery = query(
         collection(db, `${user.uid}/anniversary/${dateString}`),
         orderBy("name", "asc"),
-        limit(10)
+        limit(25)
+      );
+
+      unsubscribe = await onSnapshot(ThisAnniQuery, (snapshot) => {
+        const anniversaries = snapshot.docs.map((doc) => {
+          const { name, date, count } = doc.data();
+          return { name, date, count, id: doc.id };
+        });
+        setThisAnnis(anniversaries);
+      });
+
+      const anniversaryIds = thisAnnis.map((anni) => {
+        return anni.id;
+      });
+      setAnniIds(anniversaryIds);
+    };
+
+    const saveEachAnni = async (name, date, count, newId) => {
+      const nowDateString = date2String(selectedDate);
+      await setDoc(
+        doc(db, `${user.uid}/anniversary/${nowDateString}`, `${newId}`),
+        {
+          name,
+          date,
+          count,
+        }
+      );
+    };
+
+    const saveAnni = async () => {
+      const AnniQuery = query(
+        collection(db, `${user.uid}/anniversary/repeat`),
+        orderBy("name", "asc"),
+        limit(366)
       );
 
       unsubscribe = await onSnapshot(AnniQuery, (snapshot) => {
         const anniversaries = snapshot.docs.map((doc) => {
-          const { name } = doc.data();
-          return { name, id: doc.id };
+          const { name, date, repeatType } = doc.data();
+          return { name, date, repeatType, id: doc.id };
         });
         setAnnis(anniversaries);
+      });
+
+      annis.map((anni) => {
+        const date = new Date(anni.date.selectedDate.seconds * 1000);
+        date.setHours(0, 0, 0);
+
+        if (!anniIds.includes(anni.id) && date < selectedDate) {
+          const countnum =
+            Math.floor(
+              (selectedDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+            ) + 1;
+
+          switch (anni.repeatType) {
+            case 1: // 1년 단위 기념일
+              if (
+                selectedDate.getMonth() === date.getMonth() &&
+                selectedDate.getDate() === date.getDate()
+              ) {
+                const count = `${
+                  selectedDate.getYear() - date.getYear()
+                }년`;
+                saveEachAnni(anni.name, selectedDate, count, anni.id);
+              }
+              break;
+            case 2: // 100일 단위 기념일
+            case 3: // 1000일 단위 기념일
+              if (
+                countnum === 1 ||
+                countnum % 100 === 0 ||
+                countnum % 1000 === 0
+              ) {
+                const count = `${countnum}일`;
+                saveEachAnni(anni.name, selectedDate, count, anni.id);
+              }
+              break;
+          }
+        }
       });
     };
 
@@ -221,22 +294,6 @@ const Calendar = () => {
         return scd.id;
       });
       setScdIds(scheduleIds);
-    };
-
-    const fetchTodo = async () => {
-      const TodosQuery = query(
-        collection(db, `${user.uid}/todo/${dateString}`),
-        orderBy("createdAt", "desc"),
-        limit(25)
-      );
-
-      unsubscribe = await onSnapshot(TodosQuery, (snapshot) => {
-        const todos = snapshot.docs.map((doc) => {
-          const { name, createdAt, checked } = doc.data();
-          return { name, createdAt, checked, id: doc.id };
-        });
-        setTodos(todos);
-      });
     };
 
     const saveEachScd = async (
@@ -404,10 +461,30 @@ const Calendar = () => {
         }
       });
     };
-    fetchAnni();
+
+    const fetchTodo = async () => {
+      const TodosQuery = query(
+        collection(db, `${user.uid}/todo/${dateString}`),
+        orderBy("createdAt", "desc"),
+        limit(25)
+      );
+
+      unsubscribe = await onSnapshot(TodosQuery, (snapshot) => {
+        const todos = snapshot.docs.map((doc) => {
+          const { name, createdAt, checked } = doc.data();
+          return { name, createdAt, checked, id: doc.id };
+        });
+        setTodos(todos);
+      });
+    };
+
+    fetchThisAnni();
+    saveAnni();
+
     fetchScd();
-    fetchTodo();
     saveRepeatScd();
+
+    fetchTodo();
 
     return () => {
       unsubscribe && unsubscribe();
@@ -537,7 +614,7 @@ const Calendar = () => {
             <DayName>{DAY_LIST[createdCalendar.currentDate.getDay()]}</DayName>
           </div>
           <div style={{ width: "100%", paddingBottom: "10px" }}>
-            {annis.map((anni) => (
+            {thisAnnis.map((anni) => (
               <Anniversary key={anni.id} {...anni} />
             ))}
           </div>
