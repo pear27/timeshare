@@ -172,6 +172,7 @@ const CreateCalendar = () => {
 const Calendar = () => {
   const user = auth.currentUser;
   const createdCalendar = CreateCalendar();
+  const selectedDate = new Date(createdCalendar.currentDate);
   const [saveScdForm, setSaveScdForm] = useState(false);
 
   const [todos, setTodos] = useState<ITodo[]>([]);
@@ -183,7 +184,7 @@ const Calendar = () => {
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | null = null;
-    const dateString = `${date2String(createdCalendar.currentDate)}`;
+    const dateString = `${date2String(selectedDate)}`;
 
     const fetchAnni = async () => {
       const AnniQuery = query(
@@ -239,23 +240,29 @@ const Calendar = () => {
     };
 
     const saveEachScd = async (
-      nowDateString,
+      dateCount,
       newId,
       name,
       startDate,
       endDate,
       repeatType
     ) => {
-      await setDoc(
-        doc(db, `${user.uid}/schedule/${nowDateString}`, `${newId}`),
-        {
-          name,
-          startDate,
-          endDate,
-          repeatType,
-          repeatEnd: true,
-        }
-      );
+      for (let i = 0; i <= dateCount; i++) {
+        const nowDate = startDate;
+        const nowDateString = date2String(
+          nowDate.setDate(startDate.getDate() + i)
+        );
+        await setDoc(
+          doc(db, `${user.uid}/schedule/${nowDateString}`, `${newId}`),
+          {
+            name,
+            startDate,
+            endDate,
+            repeatType,
+            repeatEnd: true,
+          }
+        );
+      }
     };
 
     const saveRepeatScd = async () => {
@@ -291,62 +298,107 @@ const Calendar = () => {
       repeatScds.map((scd) => {
         const startDate = new Date(scd.startDate.seconds * 1000);
         const endDate = new Date(scd.endDate.seconds * 1000);
-        const tmxkxm = createdCalendar.currentDate;
+        const tmxkxm = new Date(selectedDate);
         tmxkxm.setHours(23, 59, 59);
         if (
           !scdIds.includes(scd.id) &&
           startDate <= tmxkxm &&
           (!scd.repeatEnd ||
-            createdCalendar.currentDate <
-              new Date(scd.repeatEnd.seconds * 1000))
+            selectedDate < new Date(scd.repeatEnd.seconds * 1000))
         ) {
+          const dateCount =
+            (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+          const newId = scd.id;
+
+          const start = new Date(selectedDate);
+          start.setHours(startDate.getHours(), startDate.getMinutes(), 0);
+
+          const end = new Date(selectedDate);
+          end.setDate(start.getDate() + dateCount);
+          end.setHours(endDate.getHours(), endDate.getMinutes(), 0);
+
           switch (scd.repeatType) {
             case 1:
-              break;
-            case 2:
               if (
-                scd.repeatInfo.repeatWeekData[
-                  createdCalendar.currentDate.getDay()
-                ]
+                Math.floor(
+                  (tmxkxm.getTime() - startDate.getTime()) /
+                    (1000 * 60 * 60 * 24)
+                ) %
+                  scd.repeatInfo.repeatDayData ===
+                0
               ) {
                 //db에 저장
-                const dateCount =
-                  (endDate.getTime() - startDate.getTime()) /
-                  (1000 * 60 * 60 * 24);
-                const newId = scd.id;
-
-                const start = new Date(
-                  createdCalendar.currentDate.setHours(
-                    startDate.getHours(),
-                    startDate.getMinutes(),
-                    0
-                  )
+                saveEachScd(
+                  dateCount,
+                  newId,
+                  scd.name,
+                  start,
+                  end,
+                  scd.repeatType
                 );
-
-                const end = createdCalendar.currentDate;
-                end.setDate(start.getDate() + dateCount);
-                end.setHours(endDate.getHours(), endDate.getMinutes(), 0);
-
-                for (let i = 0; i <= dateCount; i++) {
-                  const nowDate = start;
-                  const nowDateString = date2String(
-                    nowDate.setDate(start.getDate() + i)
-                  );
-
-                  saveEachScd(
-                    nowDateString,
-                    newId,
-                    scd.name,
-                    start,
-                    end,
-                    scd.repeatType
-                  );
-                }
+              }
+              break;
+            case 2:
+              if (scd.repeatInfo.repeatWeekData[selectedDate.getDay()]) {
+                //db에 저장
+                saveEachScd(
+                  dateCount,
+                  newId,
+                  scd.name,
+                  start,
+                  end,
+                  scd.repeatType
+                );
               }
               break;
             case 3:
+              if (
+                (scd.repeatInfo.repeatMonthData === 0 &&
+                  selectedDate.getDate() === startDate.getDate()) ||
+                (scd.repeatInfo.repeatMonthData === 1 &&
+                  selectedDate.getDay() === startDate.getDay() &&
+                  Math.floor(
+                    (selectedDate.getDate() + selectedDate.getDay() + 1) / 7
+                  ) ===
+                    Math.floor(
+                      (startDate.getDate() + startDate.getDay() + 1) / 7
+                    ))
+              ) {
+                //db에 저장
+                saveEachScd(
+                  dateCount,
+                  newId,
+                  scd.name,
+                  start,
+                  end,
+                  scd.repeatType
+                );
+              }
               break;
             case 4:
+              if (
+                selectedDate.getMonth() === startDate.getMonth() &&
+                ((scd.repeatInfo.repeatYearData === 0 &&
+                  selectedDate.getDate() === startDate.getDate()) ||
+                  (scd.repeatInfo.repeatYearData === 1 &&
+                    selectedDate.getDay() === startDate.getDay() &&
+                    Math.floor(
+                      (selectedDate.getDate() + selectedDate.getDay() + 1) / 7
+                    ) ===
+                      Math.floor(
+                        (startDate.getDate() + startDate.getDay() + 1) / 7
+                      )))
+              ) {
+                //db에 저장
+                saveEachScd(
+                  dateCount,
+                  newId,
+                  scd.name,
+                  start,
+                  end,
+                  scd.repeatType
+                );
+              }
               break;
           }
         }
@@ -356,8 +408,6 @@ const Calendar = () => {
     fetchScd();
     fetchTodo();
     saveRepeatScd();
-
-    fetchScd();
 
     return () => {
       unsubscribe && unsubscribe();
