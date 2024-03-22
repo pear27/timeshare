@@ -21,7 +21,6 @@ export default function SaveScdForm({
   start,
   end,
   Rtype,
-  Rperiod,
   Rinfo,
   Rend,
   user,
@@ -34,11 +33,11 @@ export default function SaveScdForm({
   );
 
   const [repeatType, setRepeatType] = useState(Rtype ? Rtype : 0);
-  const [repeatPeriod, setRepeatPeriod] = useState(Rperiod ? Rperiod : 1);
 
+  const [repeatDayData, setRepeatDayData] = useState(1);
   const repeatWeekData = [false, false, false, false, false, false, false];
-  const [repeatMonthData, setRepeatMonthData] = useState(start.getDate());
-  const [repeatYearData, setRepeatYearData] = useState(start);
+  const [repeatMonthData, setRepeatMonthData] = useState(0);
+  const [repeatYearData, setRepeatYearData] = useState(0);
 
   const [repeatEnd, setRepeatEnd] = useState(Rend ? Rend : null);
 
@@ -75,8 +74,8 @@ export default function SaveScdForm({
     setName(e.target.value);
   };
 
-  const onChangeRepeatPeriod = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRepeatPeriod(e.target.value);
+  const onChangeRepeatDayData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRepeatDayData(Number(e.target.value));
   };
 
   const onChangeRepeatWeekDay = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,15 +94,25 @@ export default function SaveScdForm({
   const onChangeRepeatMonthData = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
 
-    setRepeatMonthData(Number(e.target.value));
-
-    if (Number(repeatMonthData) === 0) {
-      e.target.classList.add(selectedName);
-      e.target.nextSibling.classList.remove(selectedName);
-    } else {
-      e.target.previousSibling.classList.remove(selectedName);
-      e.target.classList.add(selectedName);
+    for (let i = 0; i < 2; i++) {
+      if (e.target.parentNode.childNodes[i].classList.contains(selectedName)) {
+        e.target.parentNode.childNodes[i].classList.remove(selectedName);
+      }
     }
+    e.target.classList.add(selectedName);
+    setRepeatMonthData(Number(e.target.value));
+  };
+
+  const onChangeRepeatYearData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+
+    for (let i = 0; i < 2; i++) {
+      if (e.target.parentNode.childNodes[i].classList.contains(selectedName)) {
+        e.target.parentNode.childNodes[i].classList.remove(selectedName);
+      }
+    }
+    e.target.classList.add(selectedName);
+    setRepeatYearData(Number(e.target.value));
   };
 
   const onSubmitSchedule = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -166,7 +175,7 @@ export default function SaveScdForm({
             startDate,
             endDate,
             repeatType,
-            repeatPeriod,
+            repeatInfo: { repeatDayData },
             repeatEnd,
           });
           break;
@@ -267,9 +276,9 @@ export default function SaveScdForm({
       {repeatType === 1 ? (
         <div>
           <NumInput
-            value={repeatPeriod}
+            value={repeatDayData}
             type="number"
-            onChange={onChangeRepeatPeriod}
+            onChange={onChangeRepeatDayData}
           />
           <Label> 일마다 반복</Label>
         </div>
@@ -313,7 +322,11 @@ export default function SaveScdForm({
             gap: "5px",
           }}
         >
-          <Button value="0" onClick={onChangeRepeatMonthData}>
+          <Button
+            value="0"
+            onClick={onChangeRepeatMonthData}
+            className={selectedName}
+          >
             {startDate.getDate()}일
           </Button>
           <Button value="1" onClick={onChangeRepeatMonthData}>
@@ -331,11 +344,15 @@ export default function SaveScdForm({
             gap: "5px",
           }}
         >
-          <Button value="0">
-            {startDate.getMonth()}월 {startDate.getDate()}일
+          <Button
+            value="0"
+            onClick={onChangeRepeatYearData}
+            className={selectedName}
+          >
+            {startDate.getMonth() + 1}월 {startDate.getDate()}일
           </Button>
-          <Button value="1">
-            {startDate.getMonth()}월{" "}
+          <Button value="1" onClick={onChangeRepeatYearData}>
+            {startDate.getMonth() + 1}월{" "}
             {Math.floor((startDate.getDate() + startDate.getDay() + 1) / 7)}
             번째 {DAY_LIST[startDate.getDay()]}요일
           </Button>
