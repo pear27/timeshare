@@ -82,8 +82,8 @@ export function Schedule({ name, startDate, endDate, id }: IScd) {
 
   const user = auth.currentUser;
 
-  const start = new Date(startDate.seconds * 1000);
-  const end = new Date(endDate.seconds * 1000);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
   function getDateString(date) {
     const dateString = `${("0" + (date.getMonth() + 1)).slice(-2)}.

@@ -4,7 +4,7 @@ import { auth, db } from "./../firebase";
 
 import { useState } from "react";
 
-import { setDoc,doc } from "firebase/firestore";
+import { setDoc, doc } from "firebase/firestore";
 
 import styles from "../styles/datepicker.module.css";
 
@@ -16,7 +16,7 @@ export default function SaveAniForm({ id, initname, date, user, setSaveForm }) {
   const [name, setName] = useState(initname);
   const [selectedDate, setDate] = useState(date);
 
-  const [repeatType, setRepeatType] = useState(1);
+  const [repeatType, setRepeatType] = useState(0);
 
   const [error, setError] = useState("");
 
@@ -24,7 +24,7 @@ export default function SaveAniForm({ id, initname, date, user, setSaveForm }) {
     e.preventDefault();
     setRepeatType(Number(e.target.value));
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       if (e.target.parentNode.childNodes[i].classList.contains(selectedName)) {
         e.target.parentNode.childNodes[i].classList.remove(selectedName);
       }
@@ -42,7 +42,7 @@ export default function SaveAniForm({ id, initname, date, user, setSaveForm }) {
 
     if (!user) return;
     if (name === "") {
-      setError("일정을 입력하세요.");
+      setError("기념일을 입력하세요.");
       return;
     }
 
@@ -78,11 +78,14 @@ export default function SaveAniForm({ id, initname, date, user, setSaveForm }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateColumns: "1fr 1fr 1fr 1fr",
           gap: "5px",
         }}
       >
-        <Button value="1" onClick={handleRepeatRadio} className={selectedName}>
+        <Button value="0" onClick={handleRepeatRadio} className={selectedName}>
+          오늘만
+        </Button>
+        <Button value="1" onClick={handleRepeatRadio}>
           매년
         </Button>
         <Button value="2" onClick={handleRepeatRadio}>

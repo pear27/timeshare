@@ -67,9 +67,6 @@ export function Anniversary({ name, date, count, id }: IThisAnni) {
     e.preventDefault();
     if (newName === "") return;
     try {
-      await updateDoc(doc(db, `${user.uid}/anniversary/${dateString}`, id), {
-        name: `${newName}`,
-      });
       await updateDoc(doc(db, `${user.uid}/anniversary/repeat`, id), {
         name: `${newName}`,
       });
@@ -97,7 +94,7 @@ export function Anniversary({ name, date, count, id }: IThisAnni) {
 
   const onDelete = async () => {
     try {
-      await deleteDoc(doc(db, `${user.uid}/anniversary/${dateString}`, id));
+      await deleteDoc(doc(db, `${user.uid}/anniversary/repeat`, id));
     } catch (e) {
       console.log(e);
     } finally {

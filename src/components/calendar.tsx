@@ -175,315 +175,249 @@ const Calendar = () => {
   const selectedDate = new Date(createdCalendar.currentDate);
   const [saveForm, setSaveForm] = useState(false);
 
-  const [todos, setTodos] = useState<ITodo[]>([]);
+  const [annis, setAnnis] = useState<IAnni[]>([]);
+  const [thisAnnis, setThisAnnis] = useState<IThisAnni[]>([]);
 
   const [scds, setScds] = useState<IScd[]>([]);
-  const [scdIds, setScdIds] = useState([]);
   const [repeatScds, setRepeatScds] = useState<IRepeat[]>([]);
+  const totalScds = [];
 
-  const [thisAnnis, setThisAnnis] = useState<IThisAnni[]>([]);
-  const [anniIds, setAnniIds] = useState([]);
-  const [annis, setAnnis] = useState<IAnni[]>([]);
+  const [todos, setTodos] = useState<ITodo[]>([]);
 
-  useEffect(() => {
-    let unsubscribe: Unsubscribe | null = null;
-    const dateString = `${date2String(selectedDate)}`;
+  let unsubscribe: Unsubscribe | null = null;
+  const dateString = `${date2String(selectedDate)}`;
 
-    const fetchThisAnni = async () => {
-      const ThisAnniQuery = query(
-        collection(db, `${user.uid}/anniversary/${dateString}`),
-        orderBy("name", "asc"),
-        limit(25)
-      );
+  const fetchAnni = async () => {
+    const AnniQuery = query(
+      collection(db, `${user.uid}/anniversary/repeat`),
+      orderBy("name", "asc"),
+      limit(366)
+    );
 
-      unsubscribe = await onSnapshot(ThisAnniQuery, (snapshot) => {
-        const anniversaries = snapshot.docs.map((doc) => {
-          const { name, date, count } = doc.data();
-          return { name, date, count, id: doc.id };
-        });
-        setThisAnnis(anniversaries);
+    unsubscribe = await onSnapshot(AnniQuery, (snapshot) => {
+      const anniversaries = snapshot.docs.map((doc) => {
+        const { name, date, repeatType } = doc.data();
+        return { name, date, repeatType, id: doc.id };
       });
+      setAnnis(anniversaries);
+    });
 
-      const anniversaryIds = thisAnnis.map((anni) => {
-        return anni.id;
-      });
-      setAnniIds(anniversaryIds);
-    };
+    const repeatAnnis = [];
 
-    const saveEachAnni = async (name, date, count, newId) => {
-      const nowDateString = date2String(selectedDate);
-      await setDoc(
-        doc(db, `${user.uid}/anniversary/${nowDateString}`, `${newId}`),
-        {
-          name,
-          date,
-          count,
+    annis.map((anni) => {
+      const date = new Date(anni.date.selectedDate.seconds * 1000);
+      date.setHours(0, 0, 0);
+
+      if (date < selectedDate) {
+        const countnum =
+          Math.floor(
+            (selectedDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+          ) + 1;
+
+        switch (anni.repeatType) {
+          case 0: // 오늘만
+            if (
+              selectedDate.getYear() === date.getYear() &&
+              selectedDate.getMonth() === date.getMonth() &&
+              selectedDate.getDate() === date.getDate()
+            ) {
+              const count = "";
+              repeatAnnis.push({ name: anni.name, date, count, id: anni.id });
+            }
+            break;
+
+          case 1: // 1년 단위 기념일
+            if (
+              selectedDate.getMonth() === date.getMonth() &&
+              selectedDate.getDate() === date.getDate()
+            ) {
+              const count = `${selectedDate.getYear() - date.getYear()}년`;
+              repeatAnnis.push({ name: anni.name, date, count, id: anni.id });
+              // 배열에 저장
+            }
+            break;
+
+          case 2: // 100일 단위 기념일
+          case 3: // 1000일 단위 기념일
+            if (
+              countnum === 1 ||
+              countnum % 100 === 0 ||
+              countnum % 1000 === 0
+            ) {
+              const count = `${countnum}일`;
+              repeatAnnis.push({ name: anni.name, date, count, id: anni.id });
+              // 배열에 저장
+            }
+            break;
         }
-      );
-    };
-
-    const saveAnni = async () => {
-      const AnniQuery = query(
-        collection(db, `${user.uid}/anniversary/repeat`),
-        orderBy("name", "asc"),
-        limit(366)
-      );
-
-      unsubscribe = await onSnapshot(AnniQuery, (snapshot) => {
-        const anniversaries = snapshot.docs.map((doc) => {
-          const { name, date, repeatType } = doc.data();
-          return { name, date, repeatType, id: doc.id };
-        });
-        setAnnis(anniversaries);
-      });
-
-      annis.map((anni) => {
-        const date = new Date(anni.date.selectedDate.seconds * 1000);
-        date.setHours(0, 0, 0);
-
-        if (!anniIds.includes(anni.id) && date < selectedDate) {
-          const countnum =
-            Math.floor(
-              (selectedDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-            ) + 1;
-
-          switch (anni.repeatType) {
-            case 1: // 1년 단위 기념일
-              if (
-                selectedDate.getMonth() === date.getMonth() &&
-                selectedDate.getDate() === date.getDate()
-              ) {
-                const count = `${
-                  selectedDate.getYear() - date.getYear()
-                }년`;
-                saveEachAnni(anni.name, selectedDate, count, anni.id);
-              }
-              break;
-            case 2: // 100일 단위 기념일
-            case 3: // 1000일 단위 기념일
-              if (
-                countnum === 1 ||
-                countnum % 100 === 0 ||
-                countnum % 1000 === 0
-              ) {
-                const count = `${countnum}일`;
-                saveEachAnni(anni.name, selectedDate, count, anni.id);
-              }
-              break;
-          }
-        }
-      });
-    };
-
-    const fetchScd = async () => {
-      const ScdQuery = query(
-        collection(db, `${user.uid}/schedule/${dateString}`),
-        orderBy("startDate", "asc"),
-        limit(25)
-      );
-
-      unsubscribe = await onSnapshot(ScdQuery, (snapshot) => {
-        const schedules = snapshot.docs.map((doc) => {
-          const { name, startDate, endDate } = doc.data();
-          return { name, startDate, endDate, id: doc.id };
-        });
-        setScds(schedules);
-      });
-
-      const scheduleIds = scds.map((scd) => {
-        return scd.id;
-      });
-      setScdIds(scheduleIds);
-    };
-
-    const saveEachScd = async (
-      dateCount,
-      newId,
-      name,
-      startDate,
-      endDate,
-      repeatType
-    ) => {
-      for (let i = 0; i <= dateCount; i++) {
-        const nowDate = startDate;
-        const nowDateString = date2String(
-          nowDate.setDate(startDate.getDate() + i)
-        );
-        await setDoc(
-          doc(db, `${user.uid}/schedule/${nowDateString}`, `${newId}`),
-          {
-            name,
-            startDate,
-            endDate,
-            repeatType,
-            repeatEnd: true,
-          }
-        );
       }
-    };
+    });
+    setThisAnnis(repeatAnnis);
+  };
 
-    const saveRepeatScd = async () => {
-      const RepeatScdQuery = query(
-        collection(db, `${user.uid}/schedule/repeat`),
-        orderBy("startDate", "asc"),
-        limit(25)
-      );
+  const fetchScd = async () => {
+    const ScdQuery = query(
+      collection(db, `${user.uid}/schedule/${dateString}`),
+      orderBy("startDate", "asc"),
+      limit(25)
+    );
 
-      unsubscribe = await onSnapshot(RepeatScdQuery, (snapshot) => {
-        const repeatScds = snapshot.docs.map((doc) => {
-          const {
-            name,
-            startDate,
-            endDate,
-            repeatType,
-            repeatInfo,
-            repeatEnd,
-          } = doc.data();
-          return {
-            name,
-            startDate,
-            endDate,
-            repeatType,
-            repeatInfo,
-            repeatEnd,
-            id: doc.id,
-          };
-        });
-        setRepeatScds(repeatScds);
+    unsubscribe = await onSnapshot(ScdQuery, (snapshot) => {
+      snapshot.docs.map((doc) => {
+        const { name, startDate, endDate } = doc.data();
+        const start = new Date(startDate.seconds * 1000);
+        const end = new Date(endDate.seconds * 1000);
+        totalScds.push({ name, startDate: start, endDate: end, id: doc.id });
       });
+    });
+  };
 
-      repeatScds.map((scd) => {
-        const startDate = new Date(scd.startDate.seconds * 1000);
-        const endDate = new Date(scd.endDate.seconds * 1000);
-        const tmxkxm = new Date(selectedDate);
-        tmxkxm.setHours(23, 59, 59);
-        if (
-          !scdIds.includes(scd.id) &&
-          startDate <= tmxkxm &&
-          (!scd.repeatEnd ||
-            selectedDate < new Date(scd.repeatEnd.seconds * 1000))
-        ) {
-          const dateCount =
-            (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-          const newId = scd.id;
+  const fetchRepeatScd = async () => {
+    const RepeatScdQuery = query(
+      collection(db, `${user.uid}/schedule/repeat`),
+      orderBy("startDate", "asc"),
+      limit(25)
+    );
 
-          const start = new Date(selectedDate);
-          start.setHours(startDate.getHours(), startDate.getMinutes(), 0);
+    unsubscribe = await onSnapshot(RepeatScdQuery, (snapshot) => {
+      const repeatScds = snapshot.docs.map((doc) => {
+        const { name, startDate, endDate, repeatType, repeatInfo, repeatEnd } =
+          doc.data();
+        return {
+          name,
+          startDate,
+          endDate,
+          repeatType,
+          repeatInfo,
+          repeatEnd,
+          id: doc.id,
+        };
+      });
+      setRepeatScds(repeatScds);
+    });
 
-          const end = new Date(selectedDate);
-          end.setDate(start.getDate() + dateCount);
-          end.setHours(endDate.getHours(), endDate.getMinutes(), 0);
+    repeatScds.map((scd) => {
+      const startDate = new Date(scd.startDate.seconds * 1000);
+      const endDate = new Date(scd.endDate.seconds * 1000);
+      const tmxkxm = new Date(selectedDate);
+      tmxkxm.setHours(23, 59, 59);
+      if (
+        startDate <= tmxkxm &&
+        (!scd.repeatEnd ||
+          selectedDate < new Date(scd.repeatEnd.seconds * 1000))
+      ) {
+        const dateCount =
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
 
-          switch (scd.repeatType) {
-            case 1:
-              if (
+        const start = new Date(selectedDate);
+        start.setHours(startDate.getHours(), startDate.getMinutes(), 0);
+
+        const end = new Date(selectedDate);
+        end.setDate(start.getDate() + dateCount);
+        end.setHours(endDate.getHours(), endDate.getMinutes(), 0);
+
+        switch (scd.repeatType) {
+          case 1:
+            if (
+              Math.floor(
+                (tmxkxm.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+              ) %
+                scd.repeatInfo.repeatDayData ===
+              0
+            ) {
+              totalScds.push({
+                name: scd.name,
+                startDate: start,
+                endDate: end,
+                id: scd.id,
+              });
+              //배열에 저장
+            }
+            break;
+          case 2:
+            if (scd.repeatInfo.repeatWeekData[selectedDate.getDay()]) {
+              totalScds.push({
+                name: scd.name,
+                startDate: start,
+                endDate: end,
+                id: scd.id,
+              });
+              //배열에 저장
+            }
+            break;
+          case 3:
+            if (
+              (scd.repeatInfo.repeatMonthData === 0 &&
+                selectedDate.getDate() === startDate.getDate()) ||
+              (scd.repeatInfo.repeatMonthData === 1 &&
+                selectedDate.getDay() === startDate.getDay() &&
                 Math.floor(
-                  (tmxkxm.getTime() - startDate.getTime()) /
-                    (1000 * 60 * 60 * 24)
-                ) %
-                  scd.repeatInfo.repeatDayData ===
-                0
-              ) {
-                //db에 저장
-                saveEachScd(
-                  dateCount,
-                  newId,
-                  scd.name,
-                  start,
-                  end,
-                  scd.repeatType
-                );
-              }
-              break;
-            case 2:
-              if (scd.repeatInfo.repeatWeekData[selectedDate.getDay()]) {
-                //db에 저장
-                saveEachScd(
-                  dateCount,
-                  newId,
-                  scd.name,
-                  start,
-                  end,
-                  scd.repeatType
-                );
-              }
-              break;
-            case 3:
-              if (
-                (scd.repeatInfo.repeatMonthData === 0 &&
-                  selectedDate.getDate() === startDate.getDate()) ||
-                (scd.repeatInfo.repeatMonthData === 1 &&
+                  (selectedDate.getDate() + selectedDate.getDay() + 1) / 7
+                ) ===
+                  Math.floor(
+                    (startDate.getDate() + startDate.getDay() + 1) / 7
+                  ))
+            ) {
+              totalScds.push({
+                name: scd.name,
+                startDate: start,
+                endDate: end,
+                id: scd.id,
+              });
+              //배열에 저장
+            }
+            break;
+          case 4:
+            if (
+              selectedDate.getMonth() === startDate.getMonth() &&
+              ((scd.repeatInfo.repeatYearData === 0 &&
+                selectedDate.getDate() === startDate.getDate()) ||
+                (scd.repeatInfo.repeatYearData === 1 &&
                   selectedDate.getDay() === startDate.getDay() &&
                   Math.floor(
                     (selectedDate.getDate() + selectedDate.getDay() + 1) / 7
                   ) ===
                     Math.floor(
                       (startDate.getDate() + startDate.getDay() + 1) / 7
-                    ))
-              ) {
-                //db에 저장
-                saveEachScd(
-                  dateCount,
-                  newId,
-                  scd.name,
-                  start,
-                  end,
-                  scd.repeatType
-                );
-              }
-              break;
-            case 4:
-              if (
-                selectedDate.getMonth() === startDate.getMonth() &&
-                ((scd.repeatInfo.repeatYearData === 0 &&
-                  selectedDate.getDate() === startDate.getDate()) ||
-                  (scd.repeatInfo.repeatYearData === 1 &&
-                    selectedDate.getDay() === startDate.getDay() &&
-                    Math.floor(
-                      (selectedDate.getDate() + selectedDate.getDay() + 1) / 7
-                    ) ===
-                      Math.floor(
-                        (startDate.getDate() + startDate.getDay() + 1) / 7
-                      )))
-              ) {
-                //db에 저장
-                saveEachScd(
-                  dateCount,
-                  newId,
-                  scd.name,
-                  start,
-                  end,
-                  scd.repeatType
-                );
-              }
-              break;
-          }
+                    )))
+            ) {
+              totalScds.push({
+                name: scd.name,
+                startDate: start,
+                endDate: end,
+                id: scd.id,
+              });
+              //배열에 저장
+            }
+            break;
         }
+      }
+    });
+  };
+
+  const fetchTodo = async () => {
+    const TodosQuery = query(
+      collection(db, `${user.uid}/todo/${dateString}`),
+      orderBy("createdAt", "desc"),
+      limit(25)
+    );
+
+    unsubscribe = await onSnapshot(TodosQuery, (snapshot) => {
+      const todos = snapshot.docs.map((doc) => {
+        const { name, createdAt, checked } = doc.data();
+        return { name, createdAt, checked, id: doc.id };
       });
-    };
+      setTodos(todos);
+    });
+  };
 
-    const fetchTodo = async () => {
-      const TodosQuery = query(
-        collection(db, `${user.uid}/todo/${dateString}`),
-        orderBy("createdAt", "desc"),
-        limit(25)
-      );
+  useEffect(() => {
+    fetchAnni();
 
-      unsubscribe = await onSnapshot(TodosQuery, (snapshot) => {
-        const todos = snapshot.docs.map((doc) => {
-          const { name, createdAt, checked } = doc.data();
-          return { name, createdAt, checked, id: doc.id };
-        });
-        setTodos(todos);
-      });
-    };
-
-    fetchThisAnni();
-    saveAnni();
-
+    fetchRepeatScd();
     fetchScd();
-    saveRepeatScd();
 
+    setScds(totalScds);
     fetchTodo();
 
     return () => {
